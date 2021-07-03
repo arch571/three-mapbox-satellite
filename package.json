@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Mapbox satellite image as threejs Mesh with elevation",
   "main": "index.js",
-  "author": "Ravi Ranganathan",
+  "author": "arch571",
   "license": "MIT",
   "private": false,
   "dependencies": {
@@ -12,5 +12,6 @@
   "devDependencies": {},
   "peerDependencies": {
     "three": ">=0.129"
-  }
+  },
+  "repository": "github:arch571/three-mapbox-satellite"
 }
