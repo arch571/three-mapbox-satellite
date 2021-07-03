@@ -1,7 +1,7 @@
 # three-mapbox-satellite
 
 
-**three-mapbox-satellite** is a complete refactor and simplified version of [three-geo](https://github.com/w3reality/three-geo). In it's first version it renders the satellite image of a lat-lon. Currently it exports a single class and it is the responsibility of the consumer to import and build it using their own builders (webpack, rollup etc). 
+**three-mapbox-satellite** is a complete refactor and simplified version of [three-geo](https://github.com/w3reality/three-geo). It renders the satellite image of a lat-lon as a threejs Mesh. Currently it exports a single class and it is the responsibility of the consumer to import and build it using their own builders (webpack, rollup etc). 
 
 ## Why
 
