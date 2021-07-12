@@ -58,8 +58,11 @@ export default class ThreeMapboxSatellite {
     console.log('bbox tilepos ', tile_pos_a)
     if(tile_pos_a.length > MAX_TILES) throw new Error('Too many tiles requested. Try reducing radius!')
     if(tile_pos_a.length == 0) throw new Error('No tiles found!')
-    let tile_a = await Promise.all(tile_pos_a.map(tile_pos_str=>this.getTileData(tile_pos_str)));
-    return await this.renderAllTiles(tile_a)
+    const tile_a = [];
+    for(const tile_pos_str of tile_pos_a) {
+      tile_a.push(await this.getTileData(tile_pos_str));
+    }
+    return await this.renderAllTiles(tile_a);
   }
 
   async getTileData(tile_pos_str) {
@@ -85,7 +88,10 @@ export default class ThreeMapboxSatellite {
     
     tile_a.sort((t1, t2)=>t1.tile_pos_str.localeCompare(t2.tile_pos_str));
     if(tile_a.length > 1) addSeams(tile_a);   //if single tile no need to add seam
-    const mesh_a = await Promise.all(tile_a.map(t=>this.renderTile({ ...t, clip_panes, api_token })));
+    const mesh_a = [];
+    for(const t of tile_a) {
+      mesh_a.push(await this.renderTile({ ...t, clip_panes, api_token }));
+    }
     const group = new Group();
     group.name = 'mapbox-satellite-group'
     group.add(...mesh_a);

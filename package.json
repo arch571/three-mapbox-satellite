@@ -1,6 +1,6 @@
 {
   "name": "three-mapbox-satellite",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Mapbox satellite image as threejs Mesh with elevation",
   "main": "index.js",
   "author": "arch571",

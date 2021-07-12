@@ -82,7 +82,7 @@ const projection = sat_tiles.getProjection();   //for geo to xy and vice-versa .
   - `units_per_meter` is the length in WebGL-space per meter.
 
 ## Change Log
- * Version 0.2.0 - Performance improvement. Changed to Promise.all for parallel mapbox requests 
+ * Version 0.2.1 - Refactored and removed Promise.all to avoid simultaneous queries to mapbox 
 
 ## Credits
 * [three-geo](https://github.com/w3reality/three-geo)
