@@ -48,29 +48,29 @@ const getBBoxTilePos = (bbox, zoom) => {
   return m;
 }
 
-const getPixels = async function(url) {
+const getPixels = async (url) => {
   return new Promise ((resolve, reject) => {
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-
     const img = new Image();
     img.crossOrigin = 'Anonymous';
-    img.src =  url;
 
     img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+  
       canvas.width = img.width;
       canvas.height = img.width;
 
       context.drawImage(img, 0, 0, img.width, img.width);
 
       const imgData = context.getImageData(0, 0, img.width, img.height);
-      resolve(imgData.data);
-    };
+      return resolve(imgData.data);
+    }
     img.onerror = (e) =>{
       console.log(`Error loading mapbox ${url}`)
-      console.log(e);
+      return reject(e);
     }
-    //TBD catch error
+
+    img.src = url;
   });
 } //end getPixels
      
