@@ -1,5 +1,5 @@
 //dead simple promise pool - no type checks or validations or errors
-//idea taken from @supercharge/promise-pool concept and @ricokahler/pool
+//concept taken from @supercharge/promise-pool and @ricokahler/pool
 
 const promisePool = async (collection, max_concurrency, task)=>{
   if(max_concurrency == 0) max_concurrency = collection.length;
