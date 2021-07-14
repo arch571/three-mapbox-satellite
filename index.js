@@ -4,8 +4,11 @@ import {  addSeams, convertToXYZ, createTexture, getBBoxFromOrigin, getBBoxTileP
           getElevationsFromTile,  
           } from './geo_helper';
 
+import promisePool from './pool'
+
 const ELEVATION_DIM = 512;
 const MAX_TILES = 32;
+const MAX_CONCURRENCY = 4;
 
 export default class ThreeMapboxSatellite {
   constructor(olat, olon, zoom, radius, { clip=false, render_box_size=1, api_token='***' }={}) {
@@ -58,10 +61,7 @@ export default class ThreeMapboxSatellite {
     console.log('bbox tilepos ', tile_pos_a)
     if(tile_pos_a.length > MAX_TILES) throw new Error('Too many tiles requested. Try reducing radius!')
     if(tile_pos_a.length == 0) throw new Error('No tiles found!')
-    const tile_a = [];
-    for(const tile_pos_str of tile_pos_a) {
-      tile_a.push(await this.getTileData(tile_pos_str));
-    }
+    const tile_a = await promisePool(tile_pos_a, MAX_CONCURRENCY, tile_pos_str=>this.getTileData(tile_pos_str))
     return await this.renderAllTiles(tile_a);
   }
 
@@ -88,10 +88,7 @@ export default class ThreeMapboxSatellite {
     
     tile_a.sort((t1, t2)=>t1.tile_pos_str.localeCompare(t2.tile_pos_str));
     if(tile_a.length > 1) addSeams(tile_a);   //if single tile no need to add seam
-    const mesh_a = [];
-    for(const t of tile_a) {
-      mesh_a.push(await this.renderTile({ ...t, clip_panes, api_token }));
-    }
+    const mesh_a = await promisePool(tile_a, MAX_CONCURRENCY, t=>this.renderTile({ ...t, clip_panes, api_token }))
     const group = new Group();
     group.name = 'mapbox-satellite-group'
     group.add(...mesh_a);

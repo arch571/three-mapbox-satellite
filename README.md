@@ -83,6 +83,7 @@ const projection = sat_tiles.getProjection();   //for geo to xy and vice-versa .
 
 ## Change Log
  * Version 0.2.1 - Refactored and removed Promise.all to avoid simultaneous queries to mapbox 
+ * Version 0.2.2 - Added promise pool for queries to mapbox rather than Promise.all
 
 ## Credits
 * [three-geo](https://github.com/w3reality/three-geo)
