@@ -25,9 +25,9 @@ const getGeoDestination = (lat, lon, d, bearing) => {
   return [radian2Degree(lt2), radian2Degree(ln2)];
 }
 
-const getBBoxFromOrigin = (olat, olon, radius_in_km) => {
-  const nw = getGeoDestination(olat, olon, radius_in_km, -45);
-  const se = getGeoDestination(olat, olon, radius_in_km, 135);
+const getBBoxFromOrigin = (olat, olon, radiusInKm) => {
+  const nw = getGeoDestination(olat, olon, radiusInKm, -45);
+  const se = getGeoDestination(olat, olon, radiusInKm, 135);
   return { nw, se }
 }
 
@@ -75,17 +75,17 @@ const getPixels = async (url) => {
 } //end getPixels
      
 
-const createTexture = async (zoom, x, y, api_token) => {
-  // const url = `https://api.mapbox.com/v4/mapbox.satellite/${zoom}/${x}/${y}@2x.png?access_token=${this.api_token}`;
-  const url = `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/tiles/${zoom}/${x}/${y}?access_token=${api_token}`;
+const createTexture = async (zoom, x, y, apiToken) => {
+  // const url = `https://api.mapbox.com/v4/mapbox.satellite/${zoom}/${x}/${y}@2x.png?access_token=${this.apiToken}`;
+  const url = `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/tiles/${zoom}/${x}/${y}?access_token=${apiToken}`;
 
-  const texture_loader = new TextureLoader();
-  const texture = await texture_loader.loadAsync(url);
+  const textureLoader = new TextureLoader();
+  const texture = await textureLoader.loadAsync(url);
   return texture;
 }
 
-const getElevationsFromTile = async (zoom, x, y, api_token) => {
-  const url = `https://api.mapbox.com/v4/mapbox.terrain-rgb/${zoom}/${x}/${y}@2x.pngraw?access_token=${api_token}`;
+const getElevationsFromTile = async (zoom, x, y, apiToken) => {
+  const url = `https://api.mapbox.com/v4/mapbox.terrain-rgb/${zoom}/${x}/${y}@2x.pngraw?access_token=${apiToken}`;
   const pixels = await getPixels(url);
   return getElevationsFromPixels(pixels)
 }
@@ -104,73 +104,73 @@ const getElevationsFromPixels = (pixels)=>{
   return elevations;
 }
 
-const convertToXYZ = (tile_pos_str, tile_elevations, { elevation_dim, units_per_meter, lonLat2XY }) => {
-  const mercator = new SphericalMercator({ size: elevation_dim })
-  let [tile_zoom, tile_x, tile_y] = tile_pos_str.split('/').map(i=>parseInt(i));
-  const tile_data = [];
-  for(let row=0;row<elevation_dim;row++) {
-    for(let col=0;col<elevation_dim;col++) {
-      const pixel_lonlat = mercator.ll([
-        tile_x*elevation_dim+col,
-        tile_y*elevation_dim+row
-      ], tile_zoom)
-      tile_data.push(...lonLat2XY(pixel_lonlat), tile_elevations[row*elevation_dim+col]*units_per_meter)
+const convertToXYZ = (tilePosStr, tileElevations, { elevationDim, unitsPerMeter, lonLat2XY }) => {
+  const mercator = new SphericalMercator({ size: elevationDim })
+  let [tileZoom, tileX, tileY] = tilePosStr.split('/').map(i=>parseInt(i));
+  const tileData = [];
+  for(let row=0;row<elevationDim;row++) {
+    for(let col=0;col<elevationDim;col++) {
+      const pixelLonLat = mercator.ll([
+        tileX*elevationDim+col,
+        tileY*elevationDim+row
+      ], tileZoom)
+      tileData.push(...lonLat2XY(pixelLonLat), tileElevations[row*elevationDim+col]*unitsPerMeter)
     }
   }
-  return tile_data;
+  return tileData;
 }
 
-const getSouthTileIndex = function(tile_pos_str, tile_pos_a) {
-  let [zoom, x, y] = tile_pos_str.split('/').map(i=>parseInt(i));
-  const south_tile_str = `${zoom}/${x}/${y+1}`;
-  return tile_pos_a.indexOf(south_tile_str); 
+const getSouthTileIndex = function(tilePosStr, tilePosArray) {
+  let [zoom, x, y] = tilePosStr.split('/').map(i=>parseInt(i));
+  const southTileStr = `${zoom}/${x}/${y+1}`;
+  return tilePosArray.indexOf(southTileStr); 
 }
 
-const getEastTileIndex = function(tile_pos_str, tile_pos_a) {
-  let [zoom, x, y] = tile_pos_str.split('/').map(i=>parseInt(i));
-  const east_tile_str = `${zoom}/${x+1}/${y}`;
-  return tile_pos_a.indexOf(east_tile_str); 
+const getEastTileIndex = function(tilePosStr, tilePosArray) {
+  let [zoom, x, y] = tilePosStr.split('/').map(i=>parseInt(i));
+  const eastTileStr = `${zoom}/${x+1}/${y}`;
+  return tilePosArray.indexOf(eastTileStr); 
 }
 
-const getSouthEastTileIndex = function(tile_pos_str, tile_pos_a) {
-  let [zoom, x, y] = tile_pos_str.split('/').map(i=>parseInt(i));
-  const south_east_tile_str = `${zoom}/${x+1}/${y+1}`;
-  return tile_pos_a.indexOf(south_east_tile_str); 
+const getSouthEastTileIndex = function(tilePosStr, tilePosArray) {
+  let [zoom, x, y] = tilePosStr.split('/').map(i=>parseInt(i));
+  const southEastTileStr = `${zoom}/${x+1}/${y+1}`;
+  return tilePosArray.indexOf(southEastTileStr); 
 }
 
-const addSouthRow = function(base_tile, south_tile, elevation_dim) {
-  base_tile.push(...south_tile.slice(0, elevation_dim*3))
+const addSouthRow = function(baseTile, southTile, elevationDim) {
+  baseTile.push(...southTile.slice(0, elevationDim*3))
 }
 
-const addEastColumn = function(base_tile, east_tile, elevation_dim) {
-  for(let i=0;i<elevation_dim;i++) {
-    const si = i * elevation_dim * 3; //source index
+const addEastColumn = function(baseTile, eastTile, elevationDim) {
+  for(let i=0;i<elevationDim;i++) {
+    const si = i * elevationDim * 3; //source index
     //add extra vertex of prev rows
-    const ti = i * ((elevation_dim + 1) * 3) + elevation_dim * 3;
-    base_tile.splice(ti, 0, east_tile[si], east_tile[si+1], east_tile[si+2])
+    const ti = i * ((elevationDim + 1) * 3) + elevationDim * 3;
+    baseTile.splice(ti, 0, eastTile[si], eastTile[si+1], eastTile[si+2])
   }
 }
 
-const addSouthEastPixel = function(base_tile, south_east_tile) {
-  base_tile.push(...south_east_tile.slice(0,3));
+const addSouthEastPixel = function(baseTile, southEastTile) {
+  baseTile.push(...southEastTile.slice(0,3));
 }
 
-const addSeams = tile_a => {
-  const tile_pos_a = tile_a.map(t=>t.tile_pos_str);
-  for( let tile_obj of tile_a) {
-    let pos_index = getSouthTileIndex(tile_obj.tile_pos_str, tile_pos_a);
-    if(pos_index >= 0) {
-      addSouthRow(tile_obj.tile_data, tile_a[pos_index].tile_data, tile_obj.elevation_dim);
-      tile_obj.y_segments++;
+const addSeams = tileArray => {
+  const tilePosArray = tileArray.map(t=>t.tilePosStr);
+  for( let tileObj of tileArray) {
+    let posIndex = getSouthTileIndex(tileObj.tilePosStr, tilePosArray);
+    if(posIndex >= 0) {
+      addSouthRow(tileObj.tileData, tileArray[posIndex].tileData, tileObj.elevationDim);
+      tileObj.ySegments++;
     }
-    pos_index = getEastTileIndex(tile_obj.tile_pos_str, tile_pos_a);
-    if(pos_index >= 0) {
-      addEastColumn(tile_obj.tile_data, tile_a[pos_index].tile_data, tile_obj.elevation_dim);
-      tile_obj.x_segments++;
+    posIndex = getEastTileIndex(tileObj.tilePosStr, tilePosArray);
+    if(posIndex >= 0) {
+      addEastColumn(tileObj.tileData, tileArray[posIndex].tileData, tileObj.elevationDim);
+      tileObj.xSegments++;
     }
-    pos_index = getSouthEastTileIndex(tile_obj.tile_pos_str, tile_pos_a);
-    if(pos_index >= 0) {
-      addSouthEastPixel(tile_obj.tile_data, tile_a[pos_index].tile_data);
+    posIndex = getSouthEastTileIndex(tileObj.tilePosStr, tilePosArray);
+    if(posIndex >= 0) {
+      addSouthEastPixel(tileObj.tileData, tileArray[posIndex].tileData);
     }
   }
 }

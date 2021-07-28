@@ -62,7 +62,8 @@ const projection = sat_tiles.getProjection();   //for geo to xy and vice-versa .
 
   - `opts.clip`= false **boolean** By default it renders all the mapbox tiles within the radius, which extends beyond the render box size. Set clip to true to add clippingPanes. For it to work, the WebGLRenderer needs to have localClipping set to true
   
-- `async renderSatellite()` 
+- `async renderSatellite(progressCallback=()=>{})` 
+  - `progressCallback` **optional function** A callback method which receives the completion percentage as argument (a number between 0 and 1). Typically used by calling UI to display progressbars
 
   Return a **THREE.Group** object that represents a 3D surface of the terrain.
 
@@ -84,6 +85,7 @@ const projection = sat_tiles.getProjection();   //for geo to xy and vice-versa .
 ## Change Log
  * Version 0.2.1 - Refactored and removed Promise.all to avoid simultaneous queries to mapbox 
  * Version 0.2.2 - Added promise pool for queries to mapbox rather than Promise.all
+ * Version 0.3.0 - Addeed progress callback for renderSatellite and changed internal variables from snake_case to cameCase
 
 ## Credits
 * [three-geo](https://github.com/w3reality/three-geo)

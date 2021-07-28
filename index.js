@@ -13,18 +13,18 @@ const MAX_CONCURRENCY = 4;
 export default class ThreeMapboxSatellite {
   constructor(olat, olon, zoom, radius, { clip=false, render_box_size=1, api_token='***' }={}) {
     //stor input for debugging
-    this.origin_lat = olat;
-    this.origin_lon = olon
+    this.originLat = olat;
+    this.originLon = olon
     this.radius = radius;
     this.zoom = zoom;
     this.options = { 
       clip,
-      render_box_size,
-      api_token
+      renderBoxSize: render_box_size,
+      apiToken: api_token
     }
     this.bbox = getBBoxFromOrigin(olat, olon, radius);
     console.log("bbox ll", this.bbox)
-    this.units_per_meter = render_box_size / (radius * 1000 * Math.sqrt(2));
+    this.unitsPerMeter = render_box_size / (radius * 1000 * Math.sqrt(2));
     this.lonLat2XY = (lonlat) => {
       const { nw, se } = this.bbox;
       return [
@@ -49,66 +49,79 @@ export default class ThreeMapboxSatellite {
 
   getProjection() {
     return {
-      units_per_meter: this.units_per_meter,
+      units_per_meter: this.unitsPerMeter,  //keep for legacy reasons
+      unitsPerMeter: this.unitsPerMeter,
       bbox: this.bbox,
       lonLat2XY: this.lonLat2XY,
       xy2LonLat: this.xy2LonLat
     }
   }
 
-  async renderSatellite() {
-    const tile_pos_a = getBBoxTilePos(this.bbox, this.zoom)
-    console.log('bbox tilepos ', tile_pos_a)
-    if(tile_pos_a.length > MAX_TILES) throw new Error('Too many tiles requested. Try reducing radius!')
-    if(tile_pos_a.length == 0) throw new Error('No tiles found!')
-    const tile_a = await promisePool(tile_pos_a, MAX_CONCURRENCY, tile_pos_str=>this.getTileData(tile_pos_str))
-    return await this.renderAllTiles(tile_a);
+  async renderSatellite(progressCallback=()=>{}) {
+    const tilePosArray = getBBoxTilePos(this.bbox, this.zoom)
+    console.log('bbox tilepos ', tilePosArray)
+    if(tilePosArray.length > MAX_TILES) throw new Error('Too many tiles requested. Try reducing radius!')
+    if(tilePosArray.length == 0) throw new Error('No tiles found!')
+    const numTiles = tilePosArray.length;
+    const getTileAndUpdateProgress = async (tilePosStr,index)=>{
+      const tile = await this.getTileData(tilePosStr);
+      progressCallback((index+1)/(numTiles*2));
+      return tile;
+    };
+    const tileArray = await promisePool(tilePosArray, MAX_CONCURRENCY, getTileAndUpdateProgress);
+    return await this.renderAllTiles(tileArray, progressCallback);
   }
 
-  async getTileData(tile_pos_str) {
-    let [zoom, tile_x, tile_y] = tile_pos_str.split('/').map(i=>parseInt(i));
-    const tile_elevations = await getElevationsFromTile(zoom, tile_x, tile_y, this.options.api_token)
-    const tile_data = convertToXYZ(tile_pos_str, tile_elevations, { elevation_dim: ELEVATION_DIM, 
-                                                                    units_per_meter: this.units_per_meter, 
+  async getTileData(tilePosStr) {
+    let [zoom, tileX, tileY] = tilePosStr.split('/').map(i=>parseInt(i));
+    const tileElevations = await getElevationsFromTile(zoom, tileX, tileY, this.options.apiToken)
+    const tileData = convertToXYZ(tilePosStr, tileElevations, { elevationDim: ELEVATION_DIM, 
+                                                                    unitsPerMeter: this.unitsPerMeter, 
                                                                     lonLat2XY: this.lonLat2XY 
                                                                   })
-    return { tile_data, tile_pos_str, x_segments: ELEVATION_DIM-1, 
-                  y_segments: ELEVATION_DIM-1, elevation_dim: ELEVATION_DIM 
+    return { tileData, tilePosStr, xSegments: ELEVATION_DIM-1, 
+                  ySegments: ELEVATION_DIM-1, elevationDim: ELEVATION_DIM 
                 };
   }
 
-  async renderAllTiles(tile_a) {
-    const { clip, render_box_size, api_token } = this.options; 
-    const clip_panes = clip ? [
-      new Plane(new Vector3(1,0,0), 0.5 * render_box_size),
-      new Plane(new Vector3(-1,0,0), 0.5 * render_box_size),
-      new Plane(new Vector3(0,1,0), 0.5 * render_box_size),
-      new Plane(new Vector3(0,-1,0), 0.5 * render_box_size),
+  async renderAllTiles(tileArray, progressCallback) {
+    const { clip, renderBoxSize, apiToken } = this.options; 
+    const clipPanes = clip ? [
+      new Plane(new Vector3(1,0,0), 0.5 * renderBoxSize),
+      new Plane(new Vector3(-1,0,0), 0.5 * renderBoxSize),
+      new Plane(new Vector3(0,1,0), 0.5 * renderBoxSize),
+      new Plane(new Vector3(0,-1,0), 0.5 * renderBoxSize),
     ] : [];
     
-    tile_a.sort((t1, t2)=>t1.tile_pos_str.localeCompare(t2.tile_pos_str));
-    if(tile_a.length > 1) addSeams(tile_a);   //if single tile no need to add seam
-    const mesh_a = await promisePool(tile_a, MAX_CONCURRENCY, t=>this.renderTile({ ...t, clip_panes, api_token }))
+    tileArray.sort((t1, t2)=>t1.tilePosStr.localeCompare(t2.tilePosStr));
+    if(tileArray.length > 1) addSeams(tileArray);   //if single tile no need to add seam
+    const numTiles = tileArray.length;
+    const renderTileAndUpdateProgress = async (t, index)=>{
+      const mesh = await this.renderTile({ ...t, clipPanes, apiToken });
+      progressCallback((index+1+numTiles)/(numTiles*2));
+      return mesh;
+    }
+    const meshArray = await promisePool(tileArray, MAX_CONCURRENCY, renderTileAndUpdateProgress)
     const group = new Group();
     group.name = 'mapbox-satellite-group'
-    group.add(...mesh_a);
+    group.add(...meshArray);
     return group;
   }
   
-  async renderTile({ tile_pos_str, tile_data, x_segments, y_segments, clip_panes, api_token }) {
-    const geometry = new PlaneGeometry(1, 1, x_segments, y_segments);
-    geometry.setAttribute('position', new Float32BufferAttribute(tile_data, 3))
-    let [zoom, x, y] = tile_pos_str.split('/').map(i=>parseInt(i));
-    const texture = await createTexture(zoom, x, y, api_token)
+  async renderTile({ tilePosStr, tileData, xSegments, ySegments, clipPanes, apiToken }) {
+    const geometry = new PlaneGeometry(1, 1, xSegments, ySegments);
+    geometry.setAttribute('position', new Float32BufferAttribute(tileData, 3))
+    let [zoom, x, y] = tilePosStr.split('/').map(i=>parseInt(i));
+    const texture = await createTexture(zoom, x, y, apiToken)
     const material = new MeshBasicMaterial({
       side: FrontSide,
       map: texture,
-      clippingPlanes: clip_panes
+      clippingPlanes: clipPanes
     });
     const mesh = new Mesh(geometry, material);
     mesh.name = 'mapbox-satellite';
     Object.assign(mesh.userData, {
-      tile_pos_str
+      tilePosStr
     })
     return mesh;
   }

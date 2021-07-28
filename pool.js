@@ -1,16 +1,16 @@
 //dead simple promise pool - no type checks or validations or errors
 //concept taken from @supercharge/promise-pool and @ricokahler/pool
 
-const promisePool = async (collection, max_concurrency, task)=>{
-  if(max_concurrency == 0) max_concurrency = collection.length;
+const promisePool = async (collection, maxConcurrency, task)=>{
+  if(maxConcurrency == 0) maxConcurrency = collection.length;
   const ci = collection.map((d,i)=>[d,i]);
   const result = new Array(collection.length);
-  const data = ci.slice(0, max_concurrency);
-  let next_elem = data.length;
+  const data = ci.slice(0, maxConcurrency);
+  let nextElem = data.length;
   const doTask = async ([d,i])=>{
-    result[i] = await task(d);
-    if(next_elem < ci.length) 
-      return doTask(ci[next_elem++]);
+    result[i] = await task(d,i);
+    if(nextElem < ci.length) 
+      return doTask(ci[nextElem++]);
     return true;
   }
   await Promise.all(data.map(d=>doTask(d)));
