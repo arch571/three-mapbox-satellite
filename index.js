@@ -122,8 +122,8 @@ export default class ThreeMapboxSatellite {
     mesh.name = 'mapbox-satellite';
     Object.assign(mesh.userData, {
       tilePosStr,
-      xSegments,
-      ySegments
+      xPoints: xSegments+1,
+      yPoints: ySegments+1
     })
     return mesh;
   }
