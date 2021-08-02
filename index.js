@@ -7,7 +7,7 @@ import {  addSeams, convertToXYZ, createTexture, getBBoxFromOrigin, getBBoxTileP
 import promisePool from './pool'
 
 const ELEVATION_DIM = 512;
-const MAX_TILES = 32;
+const MAX_TILES = 36;
 const MAX_CONCURRENCY = 4;
 
 export default class ThreeMapboxSatellite {

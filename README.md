@@ -87,6 +87,7 @@ const projection = sat_tiles.getProjection();   //for geo to xy and vice-versa .
  * Version 0.2.2 - Added promise pool for queries to mapbox rather than Promise.all
  * Version 0.3.0 - Added progress callback for renderSatellite and changed internal variables from snake_case to camelCase
  * Version 0.3.2 - Added mesh dimensions to userData
+ * Version 0.3.3 - Changed MAX_TILES to 36 from 32
 
 ## Credits
 * [three-geo](https://github.com/w3reality/three-geo)
